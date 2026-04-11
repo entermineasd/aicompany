@@ -1,6 +1,4 @@
-flsak
-openai
 flask
+openai
 flask-sqlalchemy
 gunicorn
-eof
