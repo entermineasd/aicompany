@@ -47,3 +47,6 @@ http://localhost:8081
 - "중소기업 재고관리 SaaS 만들기"
 - "배달앱 MVP 기획"
 - "AI 자동화 대행 비즈니스 전략"
+
+배포 URL
+https://your-railway-url.up.railway.app
