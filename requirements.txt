@@ -1,0 +1,6 @@
+flsak
+openai
+flask
+flask-sqlalchemy
+gunicorn
+eof
