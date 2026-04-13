@@ -202,7 +202,7 @@ def run():
             f"주제: {topic}\n공격안: {results['p1']}\n보수안: {results['p2']}\n악마지적: {devil}\n분석: {results['r1']}"
         )
         results["r2"] = r
-        needs_redo = ask("아래 검토 내용에서 기획자들에게 재검토를 요청하는 내용이 있으면 'yes', 없으면 'no'만 답하세요.", f"{results['r1']}\n{r}") == "yes"
+        needs_redo = ask("아래 검토 내용에서 기획자들에게 명시적으로 재검토를 요청하는 내용이 있으면 'yes', 단순히 장단점 언급 수준이면 'no'만 답하세요.", f"{results['r1']}\n{r}") == "yes"
         yield send("msg", {"id": "r2", "text": r, "tag": "최적안"})
         yield send("status", {"id": "r2", "state": "done", "text": "최적안 도출"})
 
@@ -625,7 +625,7 @@ function addMsg(id,text,tag){
   const d=document.createElement("div");d.className="msg";
   const tagClass=tag==="찬성"?"찬성":tag==="반대"?"반대":"";
   d.innerHTML=`<div class="msg-head"><div class="msg-avatar" style="background:${a.bg};color:${a.tc};">${a.name.slice(0,2)}</div><span class="msg-name" style="color:${a.color}">${a.name}</span>${tag?`<span class="msg-tag ${tagClass}">${tag}</span>`:""}</div><div class="msg-body">${text}</div>`;
-  convo.appendChild(d);convo.scrollTop=convo.scrollHeight;
+  convo.appendChild(d);
 }
 function addRound(text){
   const convo=document.getElementById("convo");
