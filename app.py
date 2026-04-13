@@ -677,7 +677,11 @@ function listenSSE(url,onDone){
     document.getElementById("code-content").textContent=d.text;
     document.getElementById("code-box").className="code-box show";
   });
-  es.addEventListener("done",e=>{es.close();if(onDone)onDone();});
+  es.addEventListener("done",e=>{
+  es.close();
+  if(onDone)onDone();
+});
+es.onerror=function(){es.close();};
 }
 function runAgents(){
   const topic=document.getElementById("topic").value.trim();
