@@ -24,7 +24,7 @@ https://aicompany-production.up.railway.app
 - 주제 반려 기능 (불법/불가능한 주제 거부)
 
 ## 💡 활용 팁
-- aicompany 최종 보고서를 복사해서 paper-summarizer에 붙여넣으면 핵심만 요약해줘요
+- aicompany 최종 보고서를 복사해서 paper-summarizer에 붙여넣으면 핵심만 요약해줌
 - github.com/entermineasd/paper-summarizer
 
 ## 👥 AI 직원 구성
