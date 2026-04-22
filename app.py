@@ -188,7 +188,7 @@ def run():
         # 검토자1 — 비교 분석
         yield send("status", {"id": "r1", "state": "thinking", "text": "전체 토론 분석 중..."})
         r = ask(
-            "당신은 냉철한 전략 분석가입니다. 3라운드 토론과 악마의 변호인 지적을 모두 반영해서 공격안과 보수안을 최종 비교 분석하세요. 재검토가 필요하면 '재검토 필요'를 명시하세요. 3-4문장으로.",
+            "당신은 냉철한 전략 분석가입니다. 이전 토론 기록이 있다면 반드시 언급하고 더 발전된 분석을 하세요. 3라운드 토론과 악마의 변호인 지적을 모두 반영해서 공격안과 보수안을 최종 비교 분석하세요. 재검토가 필요하면 '재검토 필요'를 명시하세요. 3-4문장으로.",
             f"주제: {topic}\n공격안: {results['p1']}\n보수안: {results['p2']}\n악마: {devil}\n토론전체: {results['p1_r2']} / {results['p2_r2']}"
         )
         results["r1"] = r
@@ -239,7 +239,7 @@ def run():
         for agent_id, agent_role in vote_agents:
             yield send("status", {"id": agent_id, "state": "thinking", "text": "투표 중..."})
             vote = ask(
-                f"당신은 {agent_role}입니다. 아래 최적안에 대해 '찬성' 또는 '반대' 중 하나만 답하고, 한 줄 이유를 추가하세요.",
+                f"당신은 {agent_role}입니다. 아래 최적안에 대해 '찬성\' 또는 \'반대\' 중 하나만 답하세요. 최적안의 실행 계획이 현실적이면 찬성, 치명적 결함이 있으면 반대하세요. 구체적 이유 한 줄.",
                 f"주제: {topic}\n최적안: {results['r2']}"
             )
             votes[agent_id] = vote
@@ -253,7 +253,7 @@ def run():
 
         # 개발자들 — 실행
         yield send("status", {"id": "d1", "state": "thinking", "text": "기술 스택 검토 중..."})
-        r = ask("시니어 백엔드 개발자로서 최적안 구현에 적합한 기술 스택을 추천하세요. 2-3문장.",
+        r = ask("시니어 백엔드 개발자로서 기술 스택만 나열하세요. 전략 얘기 금지. 언어, 프레임워크, DB, 클라우드 추천 이유와 함께 2-3문장.",
                 f"주제: {topic}\n최적안: {results['r2']}")
         results["d1"] = r
         yield send("msg", {"id": "d1", "text": r, "tag": "기술스택"})
