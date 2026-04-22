@@ -207,33 +207,23 @@ def run():
         yield send("status", {"id": "r2", "state": "done", "text": "최적안 도출"})
 
         if needs_redo:
-            yield send("round", {"round": 4, "text": "재검토 라운드 — 기획자 수정"})
-            yield send("status", {"id": "p1", "state": "thinking", "text": "재검토 중..."})
-            r = ask(
-                "검토자 피드백과 악마의 지적을 반영해 공격안을 수정하세요. 2-3문장.",
-                f"기존안: {results['p1']}\n피드백: {results['r2']}\n악마지적: {devil}"
-            )
-            results["p1"] = r
-            yield send("msg", {"id": "p1", "text": r, "tag": "수정 공격안"})
-            yield send("status", {"id": "p1", "state": "done", "text": "수정 완료"})
-
-            yield send("status", {"id": "p2", "state": "thinking", "text": "재검토 중..."})
-            r = ask(
-                "검토자 피드백과 악마의 지적을 반영해 보수안을 수정하세요. 2-3문장.",
-                f"기존안: {results['p2']}\n피드백: {results['r2']}\n악마지적: {devil}"
-            )
-            results["p2"] = r
-            yield send("msg", {"id": "p2", "text": r, "tag": "수정 보수안"})
-            yield send("status", {"id": "p2", "state": "done", "text": "수정 완료"})
-
-            yield send("status", {"id": "r2", "state": "thinking", "text": "최적안 재조합 중..."})
-            r = ask(
-                "수정된 두 기획안으로 최적안을 재도출하세요. 3-4문장.",
-                f"수정 공격안: {results['p1']}\n수정 보수안: {results['p2']}\n악마지적: {devil}"
-            )
-            results["r2"] = r
-            yield send("msg", {"id": "r2", "text": r, "tag": "최종 최적안"})
-            yield send("status", {"id": "r2", "state": "done", "text": "최적안 확정"})
+    yield send("round", {"round": 4, "text": "재검토 라운드 — 기획자 수정"})
+    yield send("status", {"id": "p1", "state": "thinking", "text": "재검토 중..."})
+    r = ask(
+        "검토자 피드백을 반영해 공격안과 보수안의 장점만 합친 수정안을 2문장으로 제시하세요.",
+        f"주제: {topic}\n공격안: {results['p1']}\n보수안: {results['p2']}\n피드백: {results['r2']}"
+    )
+    results["p1"] = r
+    yield send("msg", {"id": "p1", "text": r, "tag": "수정안"})
+    yield send("status", {"id": "p1", "state": "done", "text": "수정 완료"})
+    yield send("status", {"id": "r2", "state": "thinking", "text": "최적안 재조합 중..."})
+    r = ask(
+        "수정안을 바탕으로 최적안을 3문장으로 제시하세요.",
+        f"수정안: {results['p1']}\n악마지적: {devil}"
+    )
+    results["r2"] = r
+    yield send("msg", {"id": "r2", "text": r, "tag": "최종 최적안"})
+    yield send("status", {"id": "r2", "state": "done", "text": "최적안 확정"})
 
         # 전체 AI 투표
         yield send("round", {"round": 0, "text": "전체 투표 — 최적안 찬반"})
