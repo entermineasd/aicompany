@@ -20,6 +20,32 @@ class Discussion(db.Model):
 with app.app_context():
     db.create_all()
 
+
+def get_related_discussions(topic, limit=3):
+    try:
+        discussions = Discussion.query.order_by(Discussion.created_at.desc()).limit(20).all()
+        if not discussions:
+            return ""
+        scored = []
+        for d in discussions:
+            score = 0
+            for word in topic:
+                if word in d.topic:
+                    score += 1
+            if score > 0:
+                scored.append((score, d))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        related = [d for _, d in scored[:limit]]
+        if not related:
+            related = discussions[:2]
+        context = "=== 이전 토론 참고 (같은 실수 반복 금지, 더 발전된 의견 제시) ===\n"
+        for d in related:
+            context += f"이전 주제: {d.topic}\n이전 결론: {d.report[:500] if d.report else '없음'}\n---\n"
+        return context
+    except Exception as e:
+        print(f"get_related_discussions error: {e}")
+        return ""
+
 def ask(system, user):
     res = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -54,6 +80,7 @@ def run():
     global last_results, last_topic
     topic = request.args.get("topic", "")
     last_topic = topic
+    past_context = get_related_discussions(topic)
     last_results = {}
 
     def generate():
@@ -86,7 +113,7 @@ def run():
         # 기획자1 — 공격적
         yield send("status", {"id": "p1", "state": "thinking", "text": "공격안 구상 중..."})
         r = ask(
-            "당신은 공격적 성향의 스타트업 기획자 '불도저'입니다. 경쟁 분석을 참고해서 리스크를 감수하고 크고 빠르게 가는 방향을 제안하세요. 시장 선점, 빠른 확장을 강조하세요. 2-3문장으로.",
+            "당신은 공격적 성향의 스타트업 기획자 '불도저'입니다. 이전 토론 기록이 있으면 반드시 첫 문장에 '이전 토론에서 ~했는데' 형식으로 언급하고 시작하세요. 그 다음 리스크를 감수하고 크고 빠르게 가는 방향을 제안하세요. 2-3문장으로.",
             f"주제: {topic}\n경쟁분석: {competition}"
         )
         results["p1"] = r
@@ -188,7 +215,7 @@ def run():
         # 검토자1 — 비교 분석
         yield send("status", {"id": "r1", "state": "thinking", "text": "전체 토론 분석 중..."})
         r = ask(
-            "당신은 냉철한 전략 분석가입니다. 이전 토론 기록이 있다면 반드시 언급하고 더 발전된 분석을 하세요. 3라운드 토론과 악마의 변호인 지적을 모두 반영해서 공격안과 보수안을 최종 비교 분석하세요. 재검토가 필요하면 '재검토 필요'를 명시하세요. 3-4문장으로.",
+            "당신은 냉철한 전략 분석가입니다. 이전 토론 기록이 있으면 반드시 첫 문장에 '이전 토론에서 ~결론이 났는데' 형식으로 언급하고 더 발전된 분석을 하세요. 3라운드 토론과 악마의 변호인 지적을 모두 반영해서 공격안과 보수안을 최종 비교 분석하세요. 재검토가 필요하면 '재검토 필요'를 명시하세요. 3-4문장으로.",
             f"주제: {topic}\n공격안: {results['p1']}\n보수안: {results['p2']}\n악마: {devil}\n토론전체: {results['p1_r2']} / {results['p2_r2']}"
         )
         results["r1"] = r
@@ -210,7 +237,7 @@ def run():
             yield send("round", {"round": 4, "text": "재검토 라운드 — 기획자 수정"})
             yield send("status", {"id": "p1", "state": "thinking", "text": "재검토 중..."})
             r = ask(
-            "검토자 피드백을 반영해 공격안과 보수안의 장점만 합친 수정안을 2문장으로 제시하세요.",
+            "검토자 피드백을 반영해 수정안을 2문장으로 제시하세요. 검토자2의 최적안을 절대 그대로 따라하지 마세요. 공격적 관점을 유지하면서 독립적인 의견을 내세요.",
             f"주제: {topic}\n공격안: {results['p1']}\n보수안: {results['p2']}\n피드백: {results['r2']}"
             )
             results["p1"] = r
@@ -229,17 +256,17 @@ def run():
         yield send("round", {"round": 0, "text": "전체 투표 — 최적안 찬반"})
         votes = {}
         vote_agents = [
-            ("d1", "백엔드 개발자"),
-            ("d2", "풀스택 개발자"),
-            ("d3", "DB 전문가"),
-            ("t1", "QA 엔지니어"),
-            ("t2", "UX 테스터"),
-        ]
+    		("d1", "백엔드 개발자 - 기술적 실현 가능성에 회의적인 편"),
+    		("d2", "풀스택 개발자 - 일정이 비현실적이라고 생각하는 편"),
+    		("d3", "DB 전문가 - 데이터 구조 문제에 민감한 편"),
+    		("t1", "QA 엔지니어 - 품질 기준이 까다로운 편"),
+   		 ("t2", "UX 테스터 - 사용성 문제를 자주 지적하는 편"),
+	]
         yes_count = 0
         for agent_id, agent_role in vote_agents:
             yield send("status", {"id": agent_id, "state": "thinking", "text": "투표 중..."})
             vote = ask(
-                f"당신은 {agent_role}입니다. 아래 최적안에 대해 '찬성\' 또는 \'반대\' 중 하나만 답하세요. 최적안의 실행 계획이 현실적이면 찬성, 치명적 결함이 있으면 반대하세요. 구체적 이유 한 줄.",
+                f"당신은 {agent_role}입니다. 아래 최적안을 당신의 전문 분야 관점에서 검토하세요. 장점이 단점보다 많으면 찬성, 실현 불가능한 치명적 문제가 있으면 반대하세요. '찬성' 또는 '반대' 중 하나만 답하고 전문가 관점의 이유 한 줄.",
                 f"주제: {topic}\n최적안: {results['r2']}"
             )
             votes[agent_id] = vote
@@ -250,6 +277,12 @@ def run():
             yield send("status", {"id": agent_id, "state": "done", "text": "찬성" if is_yes else "반대"})
 
         yield send("vote_result", {"yes": yes_count, "total": len(vote_agents)})
+	# 반대 의견 수집해서 최종검토에 반영
+        objections = []
+        for agent_id, agent_role in vote_agents:
+            if "반대" in votes.get(agent_id, ""):
+                objections.append(f"{agent_role}: {votes[agent_id]}")
+        objection_text = "\n".join(objections) if objections else "없음"
 
         # 개발자들 — 실행
         yield send("status", {"id": "d1", "state": "thinking", "text": "기술 스택 검토 중..."})
@@ -260,7 +293,7 @@ def run():
         yield send("status", {"id": "d1", "state": "done", "text": "완료"})
 
         yield send("status", {"id": "d2", "state": "thinking", "text": "개발 일정 산정 중..."})
-        r = ask("풀스택 개발자로서 MVP 개발 기간과 주요 단계를 2-3문장으로 제시하세요.",
+        r = ask("풀스택 개발자로서 주차별 일정만 제시하세요. 기술 얘기, 단계 설명 절대 금지. 각 주차에 그 주에 할 일 한 줄만 써주세요. 형식: 1주차: OO 진행, 2주차: OO 진행 이런 식으로.",
                 f"주제: {topic}\n최적안: {results['r2']}\n기술: {results['d1']}")
         results["d2"] = r
         yield send("msg", {"id": "d2", "text": r, "tag": "개발일정"})
@@ -299,7 +332,7 @@ def run():
         # 최종 보고서
         r = ask(
             "최종 보고 담당자로서 대표에게 보고할 최종 요약을 작성하세요.\n형식:\n[핵심 아이디어]\n[경쟁 환경]\n[공격안 vs 보수안]\n[최적안]\n[투표 결과]\n[MVP 기능 3가지]\n[기술 스택]\n[주차별 실행 계획]\n[리스크 대응]\n[최종 결론]",
-            f"주제: {topic}\n경쟁: {competition}\n공격안: {results['p1']}\n보수안: {results['p2']}\n악마: {devil}\n최적안: {results['r2']}\n투표: {yes_count}/{len(vote_agents)} 찬성\n기술: {results['d1']}\n일정: {results['d2']}\nDB: {results['d3']}\nQA: {results['t1']}\nUX: {results['t2']}\n실행계획: {action_plan}"
+            f"주제: {topic}\n경쟁: {competition}\n공격안: {results['p1']}\n보수안: {results['p2']}\n악마: {devil}\n최적안: {results['r2']}\n투표: {yes_count}/{len(vote_agents)} 찬성\n반대의견: {objection_text}\n기술: {results['d1']}\n일정: {results['d2']}\nDB: {results['d3']}\nQA: {results['t1']}\nUX: {results['t2']}\n실행계획: {action_plan}\n{past_context}"
         )
         results["fin"] = r
         last_results = results.copy()
